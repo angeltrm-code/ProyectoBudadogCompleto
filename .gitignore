@@ -28,4 +28,12 @@ build/
 
 # Otros
 *.bak
-*.tmp 
+*.tmp
+
+# Archivos de salida de emails
+desde formularios
+salida/
+
+# Archivos temporales o de prueba en scripts
+scripts/*.tmp
+scripts/*.bak 
