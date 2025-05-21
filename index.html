@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budadog - Reservas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Maven Pro', sans-serif;
+        }
+
+        body {
+            background-color: #FF6700;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .logo {
+            max-width: 200px;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background-color: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 100%;
+            color: #434343;
+        }
+
+        h1 {
+            font-family: 'Maven Pro', sans-serif;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        select, input, textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.5);
+            color: #434343;
+            font-size: 1rem;
+        }
+
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            background-color: rgba(255, 255, 255, 0.7);
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            background-color: #FF6700;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #CC5200;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <img src="assets/logo.png" alt="Budadog Logo" class="logo">
+    
+    <div class="card">
+        <h1>Reserva tu sesión</h1>
+        
+        <form id="reservationForm">
+            <div class="form-group">
+                <label for="sessionType">Tipo de sesión</label>
+                <select id="sessionType" name="sessionType" required>
+                    <option value="">Selecciona una opción</option>
+                    <option value="park">Adiestramiento en Budadog Park</option>
+                    <option value="domicilio">Adiestramiento a domicilio</option>
+                    <option value="suelta">Suelta de perros</option>
+                    <option value="online">Clase online</option>
+                </select>
+            </div>
+
+            <div class="form-group hidden" id="trainerGroup">
+                <label for="trainer">Entrenador</label>
+                <select id="trainer" name="trainer">
+                    <option value="">Selecciona un entrenador</option>
+                    <option value="alejandro">Alejandro</option>
+                    <option value="jano">Jano</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="sessionDate">Fecha de la sesión</label>
+                <input type="datetime-local" id="sessionDate" name="sessionDate" required>
+            </div>
+
+            <div class="form-group">
+                <label for="location">Ubicación</label>
+                <select id="location" name="location" required>
+                    <option value="">Selecciona una ubicación</option>
+                    <option value="budadog-park">Budadog Park</option>
+                    <option value="domicilio">A domicilio</option>
+                    <option value="online">Online</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="fullName">Nombre completo</label>
+                <input type="text" id="fullName" name="fullName" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Teléfono</label>
+                <input type="tel" id="phone" name="phone" required>
+            </div>
+
+            <div class="form-group">
+                <label for="dogName">Nombre del perro</label>
+                <input type="text" id="dogName" name="dogName" required>
+            </div>
+
+            <div class="form-group">
+                <label for="dogAge">Edad del perro</label>
+                <input type="number" id="dogAge" name="dogAge" min="0" required>
+            </div>
+
+            <div class="form-group">
+                <label for="comments">Comentarios</label>
+                <textarea id="comments" name="comments"></textarea>
+            </div>
+
+            <button type="submit">Reservar ahora</button>
+        </form>
+    </div>
+
+    <script>
+        // Configuración de webhooks y APIs
+        const CONFIG = {
+            googleSheets: {
+                webhookUrl: 'TU_WEBHOOK_GOOGLE_SHEETS',
+                sheetId: 'TU_SHEET_ID'
+            },
+            mailerLite: {
+                apiKey: 'TU_API_KEY_MAILERLITE',
+                listId: 'TU_LIST_ID'
+            },
+            twilio: {
+                accountSid: 'TU_ACCOUNT_SID',
+                authToken: 'TU_AUTH_TOKEN',
+                phoneNumber: 'TU_NUMERO_TWILIO'
+            }
+        };
+
+        // Función para enviar datos a Google Sheets
+        async function sendToGoogleSheets(data) {
+            try {
+                const response = await fetch(CONFIG.googleSheets.webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Error al enviar datos a Google Sheets:', error);
+                throw error;
+            }
+        }
+
+        // Función para enviar email de confirmación
+        async function sendConfirmationEmail(data) {
+            try {
+                const response = await fetch('https://api.mailerlite.com/api/v2/subscribers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-MailerLite-ApiKey': CONFIG.mailerLite.apiKey
+                    },
+                    body: JSON.stringify({
+                        email: data.email,
+                        name: data.fullName,
+                        fields: {
+                            tipo_sesion: data.sessionType,
+                            entrenador: data.trainer,
+                            fecha: data.sessionDate,
+                            ubicacion: data.location,
+                            nombre_perro: data.dogName,
+                            edad_perro: data.dogAge
+                        }
+                    })
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Error al enviar email:', error);
+                throw error;
+            }
+        }
+
+        // Función para programar SMS de recordatorio
+        async function scheduleReminderSMS(data) {
+            try {
+                const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${CONFIG.twilio.accountSid}/Messages.json`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Authorization': 'Basic ' + btoa(`${CONFIG.twilio.accountSid}:${CONFIG.twilio.authToken}`)
+                    },
+                    body: new URLSearchParams({
+                        To: data.phone,
+                        From: CONFIG.twilio.phoneNumber,
+                        Body: `🐾 BUDADOG - ¡Hola! Te recordamos con mucho cariño que mañana tienes una cita con ${data.trainer} a las ${data.sessionDate}. Si tienes cualquier duda o necesitas ayuda, estamos en el 604029099. ¡Gracias por confiar en nosotros y en tu perro!`
+                    })
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Error al programar SMS:', error);
+                throw error;
+            }
+        }
+
+        // Manejador del formulario
+        document.getElementById('reservationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            
+            try {
+                // Enviar datos a Google Sheets
+                await sendToGoogleSheets(data);
+                
+                // Enviar email de confirmación
+                await sendConfirmationEmail(data);
+                
+                // Programar SMS de recordatorio
+                await scheduleReminderSMS(data);
+                
+                // Redirigir según el tipo de sesión
+                const sessionType = data.sessionType;
+                const trainer = data.trainer;
+                
+                let redirectUrl = '';
+                
+                if (sessionType === 'suelta') {
+                    redirectUrl = '/budadog-park-suelta';
+                } else {
+                    redirectUrl = `/${trainer}-${sessionType}`;
+                }
+                
+                // Validar URL antes de redirigir
+                const validUrls = [
+                    '/alejandro-park',
+                    '/alejandro-domicilio',
+                    '/alejandro-online',
+                    '/jano-park',
+                    '/jano-domicilio',
+                    '/budadog-park-suelta'
+                ];
+                
+                if (validUrls.includes(redirectUrl)) {
+                    window.location.href = redirectUrl;
+                }
+            } catch (error) {
+                console.error('Error al procesar la reserva:', error);
+                alert('Ha ocurrido un error al procesar tu reserva. Por favor, inténtalo de nuevo.');
+            }
+        });
+
+        // Mostrar/ocultar campos según el tipo de sesión
+        document.getElementById('sessionType').addEventListener('change', function() {
+            const trainerGroup = document.getElementById('trainerGroup');
+            const trainer = document.getElementById('trainer');
+            const locationSelect = document.getElementById('location');
+            
+            if (this.value === 'park' || this.value === 'domicilio' || this.value === 'online') {
+                trainerGroup.classList.remove('hidden');
+                trainer.required = true;
+            } else {
+                trainerGroup.classList.add('hidden');
+                trainer.required = false;
+            }
+
+            // Actualizar opciones de ubicación según el tipo de sesión
+            locationSelect.innerHTML = '<option value="">Selecciona una ubicación</option>';
+            
+            switch(this.value) {
+                case 'park':
+                    locationSelect.innerHTML += '<option value="budadog-park">Budadog Park</option>';
+                    break;
+                case 'domicilio':
+                    locationSelect.innerHTML += '<option value="domicilio">A domicilio</option>';
+                    break;
+                case 'online':
+                    locationSelect.innerHTML += '<option value="online">Online</option>';
+                    break;
+                case 'suelta':
+                    locationSelect.innerHTML += '<option value="budadog-park">Budadog Park</option>';
+                    break;
+            }
+        });
+
+        /* 
+        ESCALABILIDAD:
+        
+        1. Para añadir nuevos entrenadores:
+        - Añadir opción en el select de entrenadores
+        - Actualizar validUrls con las nuevas rutas
+        
+        2. Para añadir nuevas ubicaciones:
+        - Añadir opción en el select de ubicaciones
+        - Actualizar la lógica del switch en el event listener de sessionType
+        
+        3. Para añadir nuevos tipos de cita:
+        - Añadir opción en el select de sessionType
+        - Actualizar la lógica de validación de URLs
+        - Actualizar la lógica de mostrar/ocultar campos
+        
+        4. Para nuevas reglas de derivación:
+        - Modificar la lógica en el event listener de sessionType
+        - Actualizar la función de redirección según las nuevas reglas
+        */
+    </script>
+</body>
+</html> 
