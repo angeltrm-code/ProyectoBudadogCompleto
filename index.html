@@ -261,45 +261,26 @@
         // Manejador del formulario
         document.getElementById('reservationForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
             const formData = new FormData(this);
             const data = Object.fromEntries(formData.entries());
-            
+
             try {
-                // Enviar datos a Google Sheets
-                await sendToGoogleSheets(data);
-                
-                // Enviar email de confirmación
-                await sendConfirmationEmail(data);
-                
-                // Programar SMS de recordatorio
-                await scheduleReminderSMS(data);
-                
-                // Redirigir según el tipo de sesión
-                const sessionType = data.sessionType;
-                const trainer = data.trainer;
-                
-                let redirectUrl = '';
-                
-                if (sessionType === 'suelta') {
-                    redirectUrl = '/budadog-park-suelta';
-                } else {
-                    redirectUrl = `/${trainer}-${sessionType}`;
-                }
-                
-                // Validar URL antes de redirigir
-                const validUrls = [
-                    '/alejandro-park',
-                    '/alejandro-domicilio',
-                    '/alejandro-online',
-                    '/jano-park',
-                    '/jano-domicilio',
-                    '/budadog-park-suelta'
-                ];
-                
-                if (validUrls.includes(redirectUrl)) {
-                    window.location.href = redirectUrl;
-                }
+                // Llama al backend para generar el email y los payloads
+                const response = await fetch('/api/generar-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+
+                // Muestra el HTML generado en consola y en la página
+                console.log('HTML generado:', result.html);
+                document.body.innerHTML += `<div style="margin:2rem 0;"><h2>Vista previa del email:</h2>${result.html}</div>`;
+
+                // Muestra los payloads en consola y en la página
+                console.log('Payload MailerLite:', result.mailerLitePayload);
+                console.log('Payload Twilio:', result.twilioPayload);
+                document.body.innerHTML += `<pre style="background:#222;color:#fff;padding:1rem;overflow:auto;">Payload MailerLite:\n${JSON.stringify(result.mailerLitePayload, null, 2)}\n\nPayload Twilio:\n${JSON.stringify(result.twilioPayload, null, 2)}</pre>`;
             } catch (error) {
                 console.error('Error al procesar la reserva:', error);
                 alert('Ha ocurrido un error al procesar tu reserva. Por favor, inténtalo de nuevo.');
